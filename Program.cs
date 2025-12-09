@@ -1,11 +1,4 @@
-﻿using System.Data;
-using System.Diagnostics;
-using System.Net.NetworkInformation;
-using System.Net.Security;
-using System.Reflection.PortableExecutable;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Channels;
+﻿using System.Diagnostics;
 
 class Program
 {
