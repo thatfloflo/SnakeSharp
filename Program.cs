@@ -1,16 +1,54 @@
 ﻿using System.Diagnostics;
+using System.CommandLine;
 
 class Program
 {
     static void Main(string[] args)
     {
+        Option<GameDifficulty> difficultyOption = new Option<GameDifficulty>("--difficulty", "-d")
+        {
+            Description = "The difficulty level for the snake game.\n"
+                        + "Easy makes the snake slower and prevents it from hitting the boundary"
+                        + "or turning back on itself. "
+                        + "Medium has the snake start out slow and "
+                        + "get faster as it grows and prevents it from turning back on itself. "
+                        + "Hard makes the snake start out fast and get even faster.",
+            DefaultValueFactory = parseResult => GameDifficulty.Medium
+        };
+        RootCommand rootCommand = new RootCommand(
+@"Snake# v0.3
+
+Snake# (snake sharp) is a simple text-user interface implementation of the classic Snake game, similar to what you might remember from an early generation of Nokia phones.
+
+Gameplay:
+- The snake's head is represented by the character ö.
+- Use the arrow keys or W A S D to move the snake about the screen.
+- If the snake collides with itself or the boundary, it dies.
+- Fruits of different colours and shapes will appear in random places.
+- To gain points, make the snake eat as many fruits as you can.
+- The snake will get longer and faster with each fruit you eat.
+- The longer the snake, the more points you get for each additional fruit.
+- You can pause the game at any time by pressing P, and then Enter to resume.
+- Press the Escape key to quit the game at any time (unless paused).
+"
+        );
+        rootCommand.Add(difficultyOption);
+        rootCommand.SetAction(parseResult =>
+        {
+            LaunchGame(parseResult.GetValue(difficultyOption));
+        });
+        rootCommand.Parse(args).Invoke();
+    }
+
+    static void LaunchGame(GameDifficulty difficulty)
+    {
         bool playAgain;
-        do {
-            Game game = new Game();
+        do
+        {
+            Game game = new Game(difficulty);
             playAgain = game.Run();
-        } while(playAgain);
+        } while (playAgain);
         UserInterface.ResetCursor();
-        Environment.Exit(0);
     }
 }
 
@@ -23,6 +61,25 @@ public enum Direction
     Right,
 }
 
+public static class DirectionExtension
+{
+    extension(Direction direction)
+    {
+        public bool IsOpposite(Direction other)
+        {
+            if (direction != other
+                && direction != Direction.None
+                && other != Direction.None
+                && ((direction == Direction.Up && other == Direction.Down)
+                    || (direction == Direction.Down && other == Direction.Up)
+                    || (direction == Direction.Left && other == Direction.Right)
+                    || (direction == Direction.Right && other == Direction.Left)))
+                return true;
+            return false;
+        }
+    }
+}
+
 public readonly struct Coordinates
 {
     public Coordinates(int x, int y, string? annotation = null)
@@ -32,8 +89,8 @@ public readonly struct Coordinates
         Annotation = annotation;
     }
 
-    public int X { get; init;}
-    public int Y {get; init;}
+    public int X { get; init; }
+    public int Y { get; init; }
     public string? Annotation { get; init; }
 
     public override string ToString()
@@ -63,7 +120,7 @@ public readonly struct BoxDimensions
 
     public int Width { get; init; }
     public int Height { get; init; }
-    public Coordinates Origin {get; init;}
+    public Coordinates Origin { get; init; }
 
     public override string ToString()
     {
@@ -119,7 +176,7 @@ public readonly struct BoxDimensions
 
     public bool ContainsPoint(Coordinates point, bool excludeBorder = true)
     {
-        if ( excludeBorder )
+        if (excludeBorder)
             return point.X > GetXStart() && point.X < GetXEnd() && point.Y > GetYStart() && point.Y < GetYEnd();
         return point.X >= GetXStart() && point.X <= GetXEnd() && point.Y >= GetYStart() && point.Y <= GetYEnd();
     }
@@ -154,7 +211,7 @@ public readonly struct BlockSymbols
     public static char Transliterate(char symbol, BlockSymbols fromSet, BlockSymbols toSet)
     {
         int index = Array.FindIndex(fromSet.ToArray(), c => c == symbol);
-        if ( index >= 0 )
+        if (index >= 0)
             return toSet.ToArray()[index];
         return symbol;
     }
@@ -176,7 +233,7 @@ public class UserInterface
     public static readonly BoxDimensions GameAreaDimensions = new BoxDimensions(38, 12, new Coordinates(0, 1));
     public static readonly BoxDimensions WindowDimensions = new BoxDimensions(GameAreaDimensions.Width, GameAreaDimensions.Height + 2, new Coordinates(0, 0));
 
-    public static readonly string Title = "Snake# v0.2";
+    public static readonly string Title = "Snake# v0.3";
 
     public static void Initialize()
     {
@@ -191,42 +248,42 @@ public class UserInterface
         ResetCursor();
     }
 
-    public static bool ShowWinMessage(int score, int snakeLength)
+    public static bool ShowWinMessage(int score, int snakeLength, GameDifficulty difficulty)
     {
         DrawMessageBox([
             "     " + Ansify("YOU HAVE WON!!", color: 15, bold: true, underlined: true),
             "",
             $" Score: {score}",
             $" Snake length: {snakeLength}",
-            "",
+            $" Difficulty: {difficulty}",
             "",
             Ansify("      Esc to quit", dim: true),
             Ansify("  Enter to play again", dim: true)
         ]);
         return PollInputKey([ConsoleKey.Escape, ConsoleKey.Enter]) == ConsoleKey.Enter;
     }
-    public static bool ShowGameOverMessage(int score, int snakeLength)
+    public static bool ShowGameOverMessage(int score, int snakeLength, GameDifficulty difficulty)
     {
         DrawMessageBox([
             "       " + Ansify("Game Over", color: 15, bold: true, underlined: true),
             "",
             $" Score: {score}",
             $" Snake length: {snakeLength}",
-            "",
+            $" Difficulty: {difficulty}",
             "",
             Ansify("      Esc to quit", dim: true),
             Ansify("  Enter to play again", dim: true)
         ]);
         return PollInputKey([ConsoleKey.Escape, ConsoleKey.Enter]) == ConsoleKey.Enter;
     }
-    public static void ShowPausedMessage(int score, int snakeLength)
+    public static void ShowPausedMessage(int score, int snakeLength, GameDifficulty difficulty)
     {
         DrawMessageBox([
             "      " + Ansify("Game Paused", color: 15, bold: true, underlined: true),
             "",
             $" Score: {score}",
             $" Snake length: {snakeLength}",
-            "",
+            $" Difficulty: {difficulty}",
             "",
             "",
             Ansify("    Enter to resume", dim: true)
@@ -237,7 +294,7 @@ public class UserInterface
     public static void DrawTitle()
     {
         Console.Title = Title;
-        Console.SetCursorPosition(0,0);
+        Console.SetCursorPosition(0, 0);
         Console.Write(Title);
     }
 
@@ -272,10 +329,10 @@ public class UserInterface
         int i = 0;
         int y = innerDimensions.GetYStart();
         int yEnd = clip ? innerDimensions.GetYEnd() : int.MaxValue;
-        while( y < yEnd && i < content.Length )
+        while (y < yEnd && i < content.Length)
         {
             Console.SetCursorPosition(innerDimensions.GetXStart(), y);
-            if ( clip )
+            if (clip)
                 Console.Write(content[i].AsSpan(0, Math.Min(content[i].Length, innerDimensions.Width - 1)));
             else
                 Console.Write(content[i]);
@@ -331,7 +388,7 @@ public class UserInterface
         int yEnd = innerDimensions.GetYEnd();
         int xStart = innerDimensions.GetXStart();
         string filler = new string(' ', innerDimensions.GetWidth());
-        for(int y = yStart; y <= yEnd; y++)
+        for (int y = yStart; y <= yEnd; y++)
         {
             Console.SetCursorPosition(xStart, y);
             Console.Write(filler);
@@ -405,7 +462,7 @@ public class Snake
     public Snake(int maxLength, Coordinates spawnPosition)
     {
         Length = 1;
-        Path = new Coordinates?[maxLength];
+        Path = new Coordinates[maxLength];
         Head = spawnPosition;
         CurrentDirection = Direction.None;
         PreviousDirection = Direction.None;
@@ -413,7 +470,7 @@ public class Snake
     }
 
     public int Length { get; set; }
-    public Coordinates?[] Path { get; set; }
+    public Coordinates[] Path { get; set; }
     public Coordinates Head { get; set; }
     public Direction CurrentDirection { get; set; }
     public Direction PreviousDirection { get; set; }
@@ -505,26 +562,31 @@ public class Snake
         PreviousDirection = CurrentDirection;
         CurrentDirection = direction;
         StorePosition();
-        switch (CurrentDirection)
+        Coordinates? newPosition = SimulateMove(direction);
+        if (newPosition.HasValue)
+            Head = newPosition.Value;
+    }
+
+    public Coordinates? SimulateMove(Direction direction)
+    {
+        switch (direction)
         {
             case Direction.Up:
-                Head = Head.OffsetY(-1);
-                break;
+                return Head.OffsetY(-1);
             case Direction.Down:
-                Head = Head.OffsetY(+1);
-                break;
+                return Head.OffsetY(+1);
             case Direction.Left:
-                Head = Head.OffsetX(-1);
-                break;
+                return Head.OffsetX(-1);
             case Direction.Right:
-                Head = Head.OffsetX(+1);
-                break;
+                return Head.OffsetX(+1);
+            default:
+                return null;
         }
     }
 
     public void Draw(bool deleteOldTail = true)
     {
-        if ( deleteOldTail )
+        if (deleteOldTail)
         {
             Coordinates? tailPoint = Path[int.Max(0, Length - 1)];
             if (tailPoint.HasValue)
@@ -536,10 +598,8 @@ public class Snake
         int color = 255;
         for (int i = 0; i < Length - 1; i++)
         {
-            if (Path[i] == null)
-                throw new InvalidOperationException($"Snake.Length is {Length} but Snake.Path[{i}] is null");
-            Console.SetCursorPosition(Path[i].Value.X, Path[i].Value.Y);
-            char bodySymbol = DetermineSnakeDrawSymbol(Path[i].Value.Annotation, 'x');
+            Console.SetCursorPosition(Path[i].X, Path[i].Y);
+            char bodySymbol = DetermineSnakeDrawSymbol(Path[i].Annotation, 'x');
             if (i == Length - 2)
                 bodySymbol = ThinOutTail(bodySymbol);
             Console.Write(UserInterface.Ansify(bodySymbol.ToString(), color));
@@ -569,7 +629,7 @@ public class Snake
     {
         if (includeHead && Head.X == point.X && Head.Y == point.Y)
             return true;
-        int index = Array.FindIndex(Path, 0, Length - 1, coords => coords != null && coords.Value.X == point.X && coords.Value.Y == point.Y);
+        int index = Array.FindIndex(Path, 0, Length - 1, coords => coords.X == point.X && coords.Y == point.Y);
         return index >= 0;
     }
 
@@ -617,13 +677,13 @@ public class Fruit
     public static Coordinates FindSpawnPosition(Snake Snake)
     {
         BoxDimensions innerGameArea = UserInterface.GameAreaDimensions.GetInnerDimensions();
-        while(true)
+        while (true)
         {
             Coordinates trial = new Coordinates(
                 RndRng.Next(innerGameArea.GetXStart(), innerGameArea.GetXEnd()),
                 RndRng.Next(innerGameArea.GetYStart(), innerGameArea.GetYEnd())
             );
-            if(!Snake.CollidesWithPoint(trial))
+            if (!Snake.CollidesWithPoint(trial))
                 return trial;
         }
     }
@@ -637,7 +697,7 @@ public class Fruit
 
 public class Game
 {
-    public Game()
+    public Game(GameDifficulty difficulty = GameDifficulty.Medium)
     {
         BoxDimensions innerGameArea = UserInterface.GameAreaDimensions.GetInnerDimensions();
         Snake = new Snake(
@@ -647,8 +707,28 @@ public class Game
                 RndRng.Next(innerGameArea.GetYStart(), innerGameArea.GetYEnd())
             )
         );
-        AutoMoveDelayMax = 1000;
-        AutoMoveDelayMin = 80;
+        Difficulty = difficulty;
+        switch (Difficulty)
+        {
+            case GameDifficulty.Easy:
+                AutoMoveDelayMax = 1500;
+                AutoMoveDelayMin = 250;
+                PreventBoundaryCollisions = true;
+                PreventTurnbacks = true;
+                break;
+            case GameDifficulty.Medium:
+                AutoMoveDelayMax = 1000;
+                AutoMoveDelayMin = 80;
+                PreventBoundaryCollisions = false;
+                PreventTurnbacks = true;
+                break;
+            case GameDifficulty.Hard:
+                AutoMoveDelayMax = 500;
+                AutoMoveDelayMin = 50;
+                PreventBoundaryCollisions = false;
+                PreventTurnbacks = false;
+                break;
+        }
         AutoMoveDelay = AutoMoveDelayMax;
     }
 
@@ -663,6 +743,12 @@ public class Game
     protected int AutoMoveDelayMin { get; set; }
 
     protected int AutoMoveDelay { get; set; }
+
+    protected bool PreventBoundaryCollisions { get; set; }
+
+    protected bool PreventTurnbacks { get; set; }
+
+    protected GameDifficulty Difficulty { get; set; }
 
     protected int Score = 0;
 
@@ -684,9 +770,9 @@ public class Game
         Snake.Draw();
         if (Fruit != null)
             Fruit.Draw();
-        while( true )
+        while (true)
         {
-            if(!UserInterface.ConsoleSizeOK())
+            if (!UserInterface.ConsoleSizeOK())
             {
                 // TODO
                 throw new InvalidOperationException("Console window too small");
@@ -710,25 +796,25 @@ public class Game
             {
                 case ConsoleKey.W:
                 case ConsoleKey.UpArrow:
-                    Snake.Move(Direction.Up);
+                    MoveSnakeIfPossible(Direction.Up);
                     break;
                 case ConsoleKey.A:
                 case ConsoleKey.LeftArrow:
-                    Snake.Move(Direction.Left);
+                    MoveSnakeIfPossible(Direction.Left);
                     break;
                 case ConsoleKey.S:
                 case ConsoleKey.DownArrow:
-                    Snake.Move(Direction.Down);
+                    MoveSnakeIfPossible(Direction.Down);
                     break;
                 case ConsoleKey.D:
                 case ConsoleKey.RightArrow:
-                    Snake.Move(Direction.Right);
+                    MoveSnakeIfPossible(Direction.Right);
                     break;
                 case ConsoleKey.None:
-                    Snake.AutoMove();
+                    MoveSnakeIfPossible(Snake.CurrentDirection);
                     break;
                 case ConsoleKey.P:
-                    UserInterface.ShowPausedMessage(Score, Snake.Length);
+                    UserInterface.ShowPausedMessage(Score, Snake.Length, Difficulty);
                     UserInterface.ClearGameArea();
                     Snake.Draw();
                     if (Fruit != null)
@@ -737,15 +823,15 @@ public class Game
                 case ConsoleKey.Escape:
                     return false;
             }
-            if( Snake.Length > 1 && Snake.CollidesWithPoint(Snake.Head, includeHead: false) )
+            if (Snake.Length > 1 && Snake.CollidesWithPoint(Snake.Head, includeHead: false))
             {
                 Snake.State = SnakeState.Dead;
             }
-            if ( !UserInterface.GameAreaDimensions.ContainsPoint(Snake.Head) )
+            if (!UserInterface.GameAreaDimensions.ContainsPoint(Snake.Head))
             {
                 Snake.State = SnakeState.Dead;
             }
-            else if ( Snake.CollidesWithPoint(Fruit.Position) )
+            else if (Fruit != null && Snake.CollidesWithPoint(Fruit.Position))
             {
                 Snake.State = SnakeState.Chomping;
             }
@@ -756,18 +842,51 @@ public class Game
                     UserInterface.UpdateScore(Score);
                     Snake.Length++;
                     AutoMoveDelay -= AutoMoveDelayMax / 100;
-                    if (AutoMoveDelay < AutoMoveDelayMin )
+                    if (AutoMoveDelay < AutoMoveDelayMin)
                         AutoMoveDelay = AutoMoveDelayMin;
                     Fruit = null;
                     break;
                 case SnakeState.Dead:
                     Snake.Draw();
-                    return UserInterface.ShowGameOverMessage(Score, Snake.Length);
+                    return UserInterface.ShowGameOverMessage(Score, Snake.Length, Difficulty);
             }
             if (Snake.Length >= Snake.Path.Length)
-                return UserInterface.ShowWinMessage(Score, Snake.Length);
+                return UserInterface.ShowWinMessage(Score, Snake.Length, Difficulty);
             Snake.Draw();
         }
     }
+
+    private void MoveSnakeIfPossible(Direction direction)
+    {
+        if (PreventBoundaryCollisions && WillCollideWithBoundary(direction))
+            return;
+        if (PreventTurnbacks && WillMakeDeadlyTurnback(direction))
+            return;
+        Snake.Move(direction);
+    }
+    public bool WillCollideWithBoundary(Direction snakeDirection)
+    {
+        Coordinates? predictedPosition = Snake.SimulateMove(snakeDirection);
+        return predictedPosition.HasValue && !UserInterface.GameAreaDimensions.ContainsPoint(predictedPosition.Value);
+    }
+
+    public bool WillChompItself(Direction snakeDirection)
+    {
+        if (Snake.Length < 3)
+            return false; // Snake of lengths < 3 will always have moved their tail away after moving
+        Coordinates? predictedPosition = Snake.SimulateMove(snakeDirection);
+        return predictedPosition.HasValue && Snake.CollidesWithPoint(predictedPosition.Value, includeHead: false);
+    }
+
+    public bool WillMakeDeadlyTurnback(Direction snakeDirection)
+    {
+        return snakeDirection.IsOpposite(Snake.CurrentDirection) && WillChompItself(snakeDirection);
+    }
 }
 
+public enum GameDifficulty : ushort
+{
+    Easy = 1,
+    Medium = 2,
+    Hard = 3
+}
