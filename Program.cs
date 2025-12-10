@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.CommandLine;
+using System.Resources;
 
 class Program
 {
@@ -7,31 +8,10 @@ class Program
     {
         Option<GameDifficulty> difficultyOption = new Option<GameDifficulty>("--difficulty", "-d")
         {
-            Description = "The difficulty level for the snake game.\n"
-                        + "Easy makes the snake slower and prevents it from hitting the boundary"
-                        + "or turning back on itself. "
-                        + "Medium has the snake start out slow and "
-                        + "get faster as it grows and prevents it from turning back on itself. "
-                        + "Hard makes the snake start out fast and get even faster.",
+            Description = Resources.GetString("Help.DifficultyOption"),
             DefaultValueFactory = parseResult => GameDifficulty.Medium
         };
-        RootCommand rootCommand = new RootCommand(
-@"Snake# v0.3
-
-Snake# (snake sharp) is a simple text-user interface implementation of the classic Snake game, similar to what you might remember from an early generation of Nokia phones.
-
-Gameplay:
-- The snake's head is represented by the character ö.
-- Use the arrow keys or W A S D to move the snake about the screen.
-- If the snake collides with itself or the boundary, it dies.
-- Fruits of different colours and shapes will appear in random places.
-- To gain points, make the snake eat as many fruits as you can.
-- The snake will get longer and faster with each fruit you eat.
-- The longer the snake, the more points you get for each additional fruit.
-- You can pause the game at any time by pressing P, and then Enter to resume.
-- Press the Escape key to quit the game at any time (unless paused).
-"
-        );
+        RootCommand rootCommand = new RootCommand(Resources.GetString("Help.AppDescription")!);
         rootCommand.Add(difficultyOption);
         rootCommand.SetAction(parseResult =>
         {
@@ -50,6 +30,8 @@ Gameplay:
         } while (playAgain);
         UserInterface.ResetCursor();
     }
+
+    public static ResourceManager Resources = new ResourceManager("snake.strings", typeof(Program).Assembly);
 }
 
 public enum Direction
@@ -233,7 +215,7 @@ public class UserInterface
     public static readonly BoxDimensions GameAreaDimensions = new BoxDimensions(38, 12, new Coordinates(0, 1));
     public static readonly BoxDimensions WindowDimensions = new BoxDimensions(GameAreaDimensions.Width, GameAreaDimensions.Height + 2, new Coordinates(0, 0));
 
-    public static readonly string Title = "Snake# v0.3";
+    public static readonly string Title = Program.Resources.GetString("App.Name")! + " v" + Program.Resources.GetString("App.Version");
 
     public static void Initialize()
     {
@@ -251,42 +233,42 @@ public class UserInterface
     public static bool ShowWinMessage(int score, int snakeLength, GameDifficulty difficulty)
     {
         DrawMessageBox([
-            "     " + Ansify("YOU HAVE WON!!", color: 15, bold: true, underlined: true),
+            "     " + Ansify(Program.Resources.GetString("UserInterface.WinnerHeading")!, color: 15, bold: true, underlined: true),
             "",
-            $" Score: {score}",
-            $" Snake length: {snakeLength}",
-            $" Difficulty: {difficulty}",
+            $" {Program.Resources.GetString("UserInterface.Score")} {score}",
+            $" {Program.Resources.GetString("UserInterface.SnakeLength")} {snakeLength}",
+            $" {Program.Resources.GetString("UserInterface.Difficulty")} {difficulty}",
             "",
-            Ansify("      Esc to quit", dim: true),
-            Ansify("  Enter to play again", dim: true)
+            Ansify(PadToCenter(Program.Resources.GetString("UserInterface.EscapeToQuit")!, 24), dim: true, skipWhitespace: true),
+            Ansify(PadToCenter(Program.Resources.GetString("UserInterface.EnterToPlayAgain")!, 24), dim: true, skipWhitespace: true)
         ]);
         return PollInputKey([ConsoleKey.Escape, ConsoleKey.Enter]) == ConsoleKey.Enter;
     }
     public static bool ShowGameOverMessage(int score, int snakeLength, GameDifficulty difficulty)
     {
         DrawMessageBox([
-            "       " + Ansify("Game Over", color: 15, bold: true, underlined: true),
+            Ansify(PadToCenter(Program.Resources.GetString("UserInterface.GameOverHeading")!, 24), color: 15, bold: true, underlined: true, skipWhitespace: true),
             "",
-            $" Score: {score}",
-            $" Snake length: {snakeLength}",
-            $" Difficulty: {difficulty}",
+            $" {Program.Resources.GetString("UserInterface.Score")} {score}",
+            $" {Program.Resources.GetString("UserInterface.SnakeLength")} {snakeLength}",
+            $" {Program.Resources.GetString("UserInterface.Difficulty")} {difficulty}",
             "",
-            Ansify("      Esc to quit", dim: true),
-            Ansify("  Enter to play again", dim: true)
+            Ansify(PadToCenter(Program.Resources.GetString("UserInterface.EscapeToQuit")!, 24), dim: true, skipWhitespace: true),
+            Ansify(PadToCenter(Program.Resources.GetString("UserInterface.EnterToPlayAgain")!, 24), dim: true, skipWhitespace: true)
         ]);
         return PollInputKey([ConsoleKey.Escape, ConsoleKey.Enter]) == ConsoleKey.Enter;
     }
     public static void ShowPausedMessage(int score, int snakeLength, GameDifficulty difficulty)
     {
         DrawMessageBox([
-            "      " + Ansify("Game Paused", color: 15, bold: true, underlined: true),
+            Ansify(PadToCenter(Program.Resources.GetString("UserInterface.GamePausedHeading")!, 24), color: 15, bold: true, underlined: true, skipWhitespace: true),
             "",
-            $" Score: {score}",
-            $" Snake length: {snakeLength}",
-            $" Difficulty: {difficulty}",
+            $" {Program.Resources.GetString("UserInterface.Score")} {score}",
+            $" {Program.Resources.GetString("UserInterface.SnakeLength")} {snakeLength}",
+            $" {Program.Resources.GetString("UserInterface.Difficulty")} {difficulty}",
             "",
             "",
-            Ansify("    Enter to resume", dim: true)
+            Ansify(PadToCenter(Program.Resources.GetString("UserInterface.EnterToResume")!, 24), dim: true, skipWhitespace: true)
         ]);
         PollInputKey([ConsoleKey.Enter]);
     }
@@ -300,21 +282,21 @@ public class UserInterface
 
     public static void DrawScore()
     {
-        Console.SetCursorPosition(WindowDimensions.GetXEnd() - 11, 0);
-        Console.Write("Score: 00000");
+        Console.SetCursorPosition(WindowDimensions.GetXEnd() - 12, 0);
+        Console.Write("Score: 000000");
     }
 
     public static void UpdateScore(int score)
     {
-        Console.SetCursorPosition(WindowDimensions.GetXEnd() - 4, 0);
-        Console.Write(score.ToString("00000"));
+        Console.SetCursorPosition(WindowDimensions.GetXEnd() - 5, 0);
+        Console.Write(score.ToString("000000"));
     }
 
     public static void DrawInfobar()
     {
         Console.SetCursorPosition(0, WindowDimensions.GetYEnd());
         Console.Write(
-            Ansify("Esc to quit, p to pause, ←↑↓→ to move", dim: true)
+            Ansify(Program.Resources.GetString("UserInterface.InfoBarInstructions")!, dim: true)
         );
     }
 
@@ -439,8 +421,21 @@ public class UserInterface
         return result;
     }
 
-    public static string Ansify(string text, int? color = null, bool bold = false, bool dim = false, bool italic = false, bool underlined = false)
+    public static string Ansify(string text, int? color = null, bool bold = false, bool dim = false, bool italic = false, bool underlined = false, bool skipWhitespace = false)
     {
+        string[] result = new string[5];
+
+        if (skipWhitespace)
+        {
+            result[0] = String.Join("", text.TakeWhile(Char.IsWhiteSpace));
+            result[2] = text.Trim();
+            result[4] = String.Join("", text.Reverse().TakeWhile(Char.IsWhiteSpace));
+        }
+        else
+        {
+            result[2] = text;
+        }
+
         string?[] controlSequences = new string[5];
         controlSequences[0] = color.HasValue ? $"38:5:{color.Value}" : null;
         controlSequences[1] = bold ? "1" : null;
@@ -448,7 +443,17 @@ public class UserInterface
         controlSequences[3] = italic ? "3" : null;
         controlSequences[4] = underlined ? "4" : null;
         controlSequences = controlSequences.Where(s => s != null).ToArray();
-        return $"\x1b[{String.Join(";", controlSequences)}m{text}\x1b[m";
+
+        result[1] = $"\x1b[{String.Join(";", controlSequences)}m";
+        result[3] = "\x1b[m";
+        return String.Join("", result);
+    }
+
+    public static string PadToCenter(string text, int width)
+    {
+        if (text.Length >= width)
+            return text;
+        return new string(' ', width / 2 - (int)Math.Ceiling(text.Length / 2.0)) + text;
     }
 
     public static bool ConsoleSizeOK()
@@ -588,10 +593,10 @@ public class Snake
     {
         if (deleteOldTail)
         {
-            Coordinates? tailPoint = Path[int.Max(0, Length - 1)];
-            if (tailPoint.HasValue)
+            Coordinates tailPoint = Path[int.Max(0, Length - 1)];
+            if (tailPoint.X != 0 && tailPoint.Y != 0)
             {
-                Console.SetCursorPosition(tailPoint.Value.X, tailPoint.Value.Y);
+                Console.SetCursorPosition(tailPoint.X, tailPoint.Y);
                 Console.Write(' ');
             }
         }

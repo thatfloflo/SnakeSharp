@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+	<data name="App.Name">
+		<value>Snake#</value>
+	</data>
+	<data name="App.Version">
+		<value>0.3</value>
+	</data>
+	<data name="Help.DifficultyOption" xml:space="preserve">
+		<value>The difficulty level for the snake game.
+Easy makes the snake slower and prevents it from hitting the boundary or turning back on itself. Medium has the snake start out slow and get faster as it grows and prevents it from turning back on itself. Hard makes the snake start out fast and get even faster.</value>
+	</data>
+	<data name="Help.AppDescription" xml:space="preserve">
+		<value>Snake# (snake sharp) is a simple text-user interface implementation of the classic Snake game, similar to what you might remember from an early generation of Nokia phones.
+
+Gameplay:
+- The snake's head is represented by the character ö.
+- Use the arrow keys or W A S D to move the snake about the screen.
+- If the snake collides with itself or the boundary, it dies.
+- Fruits of different colours and shapes will appear in random places.
+- To gain points, make the snake eat as many fruits as you can.
+- The snake will get longer and faster with each fruit you eat.
+- The longer the snake, the more points you get for each additional fruit.
+- You can pause the game at any time by pressing P, and then Enter to resume.
+- Press the Escape key to quit the game at any time (unless paused).</value>
+	</data>
+    <data name="UserInterface.WinnerHeading">
+        <value>YOU HAVE WON!</value>
+    </data>
+    <data name="UserInterface.GameOverHeading">
+        <value>Game Over</value>
+    </data>
+    <data name="UserInterface.GamePausedHeading">
+        <value>Game Paused</value>
+    </data>
+    <data name="UserInterface.Score">
+        <value>Score:</value>
+    </data>
+    <data name="UserInterface.SnakeLength">
+        <value>Snake length:</value>
+    </data>
+    <data name="UserInterface.Difficulty">
+        <value>Difficulty:</value>
+    </data>
+    <data name="UserInterface.EscapeToQuit">
+        <value>Esc to quit</value>
+    </data>
+    <data name="UserInterface.EnterToPlayAgain">
+        <value>Enter to play again</value>
+    </data>
+    <data name="UserInterface.EnterToResume">
+        <value>Enter to resume</value>
+    </data>
+    <data name="UserInterface.InfoBarInstructions">
+        <value>Esc to quit, p to pause, ←↑↓→ to move</value>
+    </data>
+</root>
