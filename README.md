@@ -1,16 +1,11 @@
 # Snake# ![](resources/appicon32.png)
 
-**Snake#** is a basic TUI implementation of the game *Snake*, written in C# for
-.net Core 10.
-
-I wrote this mostly on a Saturday just for fun to try out some C#. As this was
-my first time writing any C#, the code is probably lacking some idiomaticity and
-could be improved in many places. Feedback is of course welcome. I may or may
-not come back to tweak this further in the future.
+**Snake#** is a basic TUI implementation of the game *Snake*, written in C# with
+.NET Core 10.
 
 ## Gameplay
 
-![Alt text](screenshot.png)
+![](resources/screenshot.png)
 
 Use the arrow keys or WASD to move the Snake. If you collide with yourself or
 the boundary the snake dies and the game ends.
