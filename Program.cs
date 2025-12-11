@@ -9,12 +9,12 @@ public static class Program
 {
     public static void Main(string[] args)
     {
-        Option<GameDifficulty> difficultyOption = new Option<GameDifficulty>("--difficulty", "-d")
+        var difficultyOption = new Option<GameDifficulty>("--difficulty", "-d")
         {
             Description = Resources.GetString("Help.DifficultyOption"),
             DefaultValueFactory = parseResult => GameDifficulty.Medium
         };
-        RootCommand rootCommand = new RootCommand(Resources.GetString("Help.AppDescription")!);
+        var rootCommand = new RootCommand(Resources.GetString("Help.AppDescription")!);
         rootCommand.Add(difficultyOption);
         rootCommand.SetAction(parseResult => LaunchGame(parseResult.GetValue(difficultyOption)));
         rootCommand.Parse(args).Invoke();
@@ -25,13 +25,13 @@ public static class Program
         bool playAgain;
         do
         {
-            Game game = new Game(difficulty);
+            var game = new Game(difficulty);
             playAgain = game.Run();
         } while (playAgain);
         UserInterface.ResetCursor();
     }
 
-    public static ResourceManager Resources = new ResourceManager("Snake.Strings", typeof(Program).Assembly);
+    public static ResourceManager Resources = new("Snake.Strings", typeof(Program).Assembly);
 }
 
 public enum Direction
@@ -185,19 +185,19 @@ public readonly struct BoxSymbols
         return symbol;
     }
 
-    private static BoxSymbols s_squareSingle = new BoxSymbols('┌', '┐', '└', '┘', '│', '─');
+    private static readonly BoxSymbols s_squareSingle = new('┌', '┐', '└', '┘', '│', '─');
     public static BoxSymbols SquareSingle { get => s_squareSingle; }
-    private static BoxSymbols s_squareDouble = new BoxSymbols('╔', '╗', '╚', '╝', '║', '═');
+    private static readonly BoxSymbols s_squareDouble = new('╔', '╗', '╚', '╝', '║', '═');
     public static BoxSymbols SquareDouble { get => s_squareDouble; }
-    private static BoxSymbols s_roundSingle = new BoxSymbols('╭', '╮', '╰', '╯', '│', '─');
+    private static readonly BoxSymbols s_roundSingle = new('╭', '╮', '╰', '╯', '│', '─');
     public static BoxSymbols RoundSingle { get => s_roundSingle; }
 }
 
 public static class UserInterface
 {
-    private static BoxDimensions s_gameAreaDimensions = new BoxDimensions(38, 12, new Coordinates(0, 1));
+    private static readonly BoxDimensions s_gameAreaDimensions = new(38, 12, new Coordinates(0, 1));
     public static BoxDimensions GameAreaDimensions { get => s_gameAreaDimensions; }
-    private static BoxDimensions s_windowDimensions = new BoxDimensions(GameAreaDimensions.Width, GameAreaDimensions.Height + 2, new Coordinates(0, 0));
+    private static readonly BoxDimensions s_windowDimensions = new(GameAreaDimensions.Width, GameAreaDimensions.Height + 2, new Coordinates(0, 0));
     public static BoxDimensions WindowDimensions { get => s_windowDimensions; }
 
     public static string Title
@@ -315,7 +315,7 @@ public static class UserInterface
     public static BoxDimensions DrawBox(int width, int height, BoxSymbols? boxSymbols = null)
     {
         BoxSymbols symbols = boxSymbols ?? BoxSymbols.SquareSingle;
-        Coordinates origin = new Coordinates(
+        var origin = new Coordinates(
             (WindowDimensions.Width - width) / 2,
             (WindowDimensions.Height - height) / 2
         );
@@ -360,7 +360,7 @@ public static class UserInterface
         int yStart = innerDimensions.YStart;
         int yEnd = innerDimensions.YEnd;
         int xStart = innerDimensions.XStart;
-        string filler = new string(' ', innerDimensions.Width);
+        var filler = new string(' ', innerDimensions.Width);
         for (int y = yStart; y <= yEnd; y++)
         {
             Console.SetCursorPosition(xStart, y);
@@ -379,7 +379,7 @@ public static class UserInterface
 
         if(timeout.HasValue)
         {
-            Stopwatch stopWatch = new Stopwatch();
+            var stopWatch = new Stopwatch();
             stopWatch.Start();
             do
             {
@@ -409,7 +409,7 @@ public static class UserInterface
 
     public static string Ansify(string text, int? color = null, bool bold = false, bool dim = false, bool italic = false, bool underlined = false, bool skipWhitespace = false)
     {
-        string[] result = new string[5];
+        var result = new string[5];
 
         if (skipWhitespace)
         {
@@ -422,12 +422,14 @@ public static class UserInterface
             result[2] = text;
         }
 
-        string?[] controlSequences = new string[5];
-        controlSequences[0] = color.HasValue ? $"38:5:{color.Value}" : null;
-        controlSequences[1] = bold ? "1" : null;
-        controlSequences[2] = dim ? "2" : null;
-        controlSequences[3] = italic ? "3" : null;
-        controlSequences[4] = underlined ? "4" : null;
+        string?[] controlSequences =
+        [
+            color.HasValue ? $"38:5:{color.Value}" : null,
+            bold ? "1" : null,
+            dim ? "2" : null,
+            italic ? "3" : null,
+            underlined ? "4" : null,
+        ];
         controlSequences = controlSequences.Where(s => s != null).ToArray();
 
         result[1] = $"\x1b[{String.Join(";", controlSequences)}m";
@@ -653,7 +655,7 @@ public class Fruit
         Color = color.Value;
         Position = position;
     }
-    private static Random s_random = new Random();
+    private static Random s_random = new();
     private static readonly char[] _fruitSelection = ['•', '◦', '▴', '■', '□', '᛭', '⨯', 'ꚛ', '★', '☆'];
     public static char[] FruitSelection { get => _fruitSelection; }
     private static readonly int[] _colorSelection = [8, 9, 10, 11, 12, 13, 14, 15];
@@ -673,7 +675,7 @@ public class Fruit
         BoxDimensions innerGameArea = UserInterface.GameAreaDimensions.GetInnerDimensions();
         while (true)
         {
-            Coordinates trial = new Coordinates(
+            var trial = new Coordinates(
                 s_random.Next(innerGameArea.XStart, innerGameArea.XEnd),
                 s_random.Next(innerGameArea.YStart, innerGameArea.YEnd)
             );
@@ -722,7 +724,7 @@ public class Game
         AutoMoveDelay = AutoMoveDelayMax;
     }
 
-    private static readonly Random s_random = new Random();
+    private static readonly Random s_random = new();
 
     public Snake Snake { get; init; }
 
