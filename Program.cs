@@ -2,6 +2,8 @@
 using System.CommandLine;
 using System.Resources;
 
+namespace Snake;
+
 class Program
 {
     static void Main(string[] args)
@@ -31,7 +33,7 @@ class Program
         UserInterface.ResetCursor();
     }
 
-    public static ResourceManager Resources = new ResourceManager("snake.strings", typeof(Program).Assembly);
+    public static ResourceManager Resources = new ResourceManager("Snake.Strings", typeof(Program).Assembly);
 }
 
 public enum Direction

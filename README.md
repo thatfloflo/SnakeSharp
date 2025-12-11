@@ -57,15 +57,11 @@ itself if told to do so, even though that results in it colliding with itself
 You'll need [.NET 10](https://dotnet.microsoft.com/) to build, and the `dotnet`
 executable on your PATH.
 
-Target machines need to have the .NET 10 runtime installed to run the app,
-unless you add the `--self-contained --runtime` flags to the build command.
-
 ### Interpreted run
 To run straight from source, use `dotnet run` inside the project directory.
 
 ### Building
 To build the project for debugging, just run
-`dotnet build ./SnakeSharp.sln`.
+`dotnet build`.
 
-To build a release, run `dotnet publish -c Release ./SnakeSharp.sln`.
-
+To build a release, run `dotnet publish -c Release`.
