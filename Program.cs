@@ -1,12 +1,13 @@
 ﻿using System.Diagnostics;
 using System.CommandLine;
 using System.Resources;
+using System.Dynamic;
 
 namespace Snake;
 
-class Program
+public static class Program
 {
-    static void Main(string[] args)
+    public static void Main(string[] args)
     {
         Option<GameDifficulty> difficultyOption = new Option<GameDifficulty>("--difficulty", "-d")
         {
@@ -15,14 +16,11 @@ class Program
         };
         RootCommand rootCommand = new RootCommand(Resources.GetString("Help.AppDescription")!);
         rootCommand.Add(difficultyOption);
-        rootCommand.SetAction(parseResult =>
-        {
-            LaunchGame(parseResult.GetValue(difficultyOption));
-        });
+        rootCommand.SetAction(parseResult => LaunchGame(parseResult.GetValue(difficultyOption)));
         rootCommand.Parse(args).Invoke();
     }
 
-    static void LaunchGame(GameDifficulty difficulty)
+    public static void LaunchGame(GameDifficulty difficulty)
     {
         bool playAgain;
         do
@@ -70,15 +68,17 @@ public readonly struct Coordinates
     {
         X = x;
         Y = y;
-        Annotation = annotation;
+        Annotation = annotation ?? "";
     }
 
     public int X { get; init; }
     public int Y { get; init; }
-    public string? Annotation { get; init; }
+    public string Annotation { get; init; }
 
     public override string ToString()
     {
+        if ( Annotation != "" )
+            return $"({X}, {Y}; {Annotation})";
         return $"({X}, {Y})";
     }
 
@@ -106,49 +106,34 @@ public readonly struct BoxDimensions
     public int Height { get; init; }
     public Coordinates Origin { get; init; }
 
+    public int XStart
+    {
+        get => Origin.X;
+    }
+
+    public int XEnd
+    {
+        get => Origin.X + Width - 1;
+    }
+
+    public int YStart
+    {
+        get => Origin.Y;
+    }
+
+    public int YEnd
+    {
+        get => Origin.Y + Height - 1;
+    }
+
+    public int Area
+    {
+        get => Width * Height;
+    }
+
     public override string ToString()
     {
         return $"({Width} × {Height}; origin: {Origin.X}, {Origin.Y})";
-    }
-
-    public int GetWidth()
-    {
-        return Width;
-    }
-
-    public int GetHeight()
-    {
-        return Height;
-    }
-
-    public Coordinates GetOrigin()
-    {
-        return Origin;
-    }
-
-    public int GetXStart()
-    {
-        return Origin.X;
-    }
-
-    public int GetXEnd()
-    {
-        return Origin.X + Width - 1;
-    }
-
-    public int GetYStart()
-    {
-        return Origin.Y;
-    }
-
-    public int GetYEnd()
-    {
-        return Origin.Y + Height - 1;
-    }
-
-    public int GetArea()
-    {
-        return Width * Height;
     }
 
     public BoxDimensions GetInnerDimensions(int offset = 1)
@@ -161,14 +146,14 @@ public readonly struct BoxDimensions
     public bool ContainsPoint(Coordinates point, bool excludeBorder = true)
     {
         if (excludeBorder)
-            return point.X > GetXStart() && point.X < GetXEnd() && point.Y > GetYStart() && point.Y < GetYEnd();
-        return point.X >= GetXStart() && point.X <= GetXEnd() && point.Y >= GetYStart() && point.Y <= GetYEnd();
+            return point.X > XStart && point.X < XEnd && point.Y > YStart && point.Y < YEnd;
+        return point.X >= XStart && point.X <= XEnd && point.Y >= YStart && point.Y <= YEnd;
     }
 }
 
-public readonly struct BlockSymbols
+public readonly struct BoxSymbols
 {
-    public BlockSymbols(char topLeft, char topRight, char bottomLeft, char bottomRight, char vertical, char horizontal, char fill = ' ')
+    public BoxSymbols(char topLeft, char topRight, char bottomLeft, char bottomRight, char vertical, char horizontal, char fill = ' ')
     {
         TopLeft = topLeft;
         TopRight = topRight;
@@ -192,7 +177,7 @@ public readonly struct BlockSymbols
         return [TopLeft, TopRight, BottomLeft, BottomRight, Vertical, Horizontal, Fill];
     }
 
-    public static char Transliterate(char symbol, BlockSymbols fromSet, BlockSymbols toSet)
+    public static char Transliterate(char symbol, BoxSymbols fromSet, BoxSymbols toSet)
     {
         int index = Array.FindIndex(fromSet.ToArray(), c => c == symbol);
         if (index >= 0)
@@ -200,24 +185,25 @@ public readonly struct BlockSymbols
         return symbol;
     }
 
-    public static BlockSymbols SquareSingle = new BlockSymbols(
-        '┌', '┐', '└', '┘', '│', '─'
-    );
-    public static BlockSymbols SquareDouble = new BlockSymbols(
-        '╔', '╗', '╚', '╝', '║', '═'
-    );
-    public static BlockSymbols RoundSingle = new BlockSymbols(
-        '╭', '╮', '╰', '╯', '│', '─'
-    );
+    private static BoxSymbols s_squareSingle = new BoxSymbols('┌', '┐', '└', '┘', '│', '─');
+    public static BoxSymbols SquareSingle { get => s_squareSingle; }
+    private static BoxSymbols s_squareDouble = new BoxSymbols('╔', '╗', '╚', '╝', '║', '═');
+    public static BoxSymbols SquareDouble { get => s_squareDouble; }
+    private static BoxSymbols s_roundSingle = new BoxSymbols('╭', '╮', '╰', '╯', '│', '─');
+    public static BoxSymbols RoundSingle { get => s_roundSingle; }
 }
 
-public class UserInterface
+public static class UserInterface
 {
+    private static BoxDimensions s_gameAreaDimensions = new BoxDimensions(38, 12, new Coordinates(0, 1));
+    public static BoxDimensions GameAreaDimensions { get => s_gameAreaDimensions; }
+    private static BoxDimensions s_windowDimensions = new BoxDimensions(GameAreaDimensions.Width, GameAreaDimensions.Height + 2, new Coordinates(0, 0));
+    public static BoxDimensions WindowDimensions { get => s_windowDimensions; }
 
-    public static readonly BoxDimensions GameAreaDimensions = new BoxDimensions(38, 12, new Coordinates(0, 1));
-    public static readonly BoxDimensions WindowDimensions = new BoxDimensions(GameAreaDimensions.Width, GameAreaDimensions.Height + 2, new Coordinates(0, 0));
-
-    public static readonly string Title = Program.Resources.GetString("App.Name")! + " v" + Program.Resources.GetString("App.Version");
+    public static string Title
+    {
+        get => Program.Resources.GetString("App.Name")! + " v" + Program.Resources.GetString("App.Version");
+    }
 
     public static void Initialize()
     {
@@ -246,6 +232,7 @@ public class UserInterface
         ]);
         return PollInputKey([ConsoleKey.Escape, ConsoleKey.Enter]) == ConsoleKey.Enter;
     }
+
     public static bool ShowGameOverMessage(int score, int snakeLength, GameDifficulty difficulty)
     {
         DrawMessageBox([
@@ -260,6 +247,7 @@ public class UserInterface
         ]);
         return PollInputKey([ConsoleKey.Escape, ConsoleKey.Enter]) == ConsoleKey.Enter;
     }
+
     public static void ShowPausedMessage(int score, int snakeLength, GameDifficulty difficulty)
     {
         DrawMessageBox([
@@ -284,19 +272,19 @@ public class UserInterface
 
     public static void DrawScore()
     {
-        Console.SetCursorPosition(WindowDimensions.GetXEnd() - 12, 0);
+        Console.SetCursorPosition(WindowDimensions.XEnd - 12, 0);
         Console.Write("Score: 000000");
     }
 
     public static void UpdateScore(int score)
     {
-        Console.SetCursorPosition(WindowDimensions.GetXEnd() - 5, 0);
+        Console.SetCursorPosition(WindowDimensions.XEnd - 5, 0);
         Console.Write(score.ToString("000000"));
     }
 
     public static void DrawInfobar()
     {
-        Console.SetCursorPosition(0, WindowDimensions.GetYEnd());
+        Console.SetCursorPosition(0, WindowDimensions.YEnd);
         Console.Write(
             Ansify(Program.Resources.GetString("UserInterface.InfoBarInstructions")!, dim: true)
         );
@@ -304,18 +292,18 @@ public class UserInterface
 
     public static void DrawGameArea()
     {
-        DrawBox(GameAreaDimensions, BlockSymbols.RoundSingle);
+        DrawBox(GameAreaDimensions, BoxSymbols.RoundSingle);
     }
 
     public static void DrawMessageBox(string[] content, bool clip = false)
     {
-        BoxDimensions innerDimensions = DrawBox(26, 10, BlockSymbols.SquareDouble);
+        BoxDimensions innerDimensions = DrawBox(26, 10, BoxSymbols.SquareDouble);
         int i = 0;
-        int y = innerDimensions.GetYStart();
-        int yEnd = clip ? innerDimensions.GetYEnd() : int.MaxValue;
+        int y = innerDimensions.YStart;
+        int yEnd = clip ? innerDimensions.YEnd : int.MaxValue;
         while (y < yEnd && i < content.Length)
         {
-            Console.SetCursorPosition(innerDimensions.GetXStart(), y);
+            Console.SetCursorPosition(innerDimensions.XStart, y);
             if (clip)
                 Console.Write(content[i].AsSpan(0, Math.Min(content[i].Length, innerDimensions.Width - 1)));
             else
@@ -324,23 +312,24 @@ public class UserInterface
         }
     }
 
-    public static BoxDimensions DrawBox(int width, int height, BlockSymbols? blockSymbols = null)
+    public static BoxDimensions DrawBox(int width, int height, BoxSymbols? boxSymbols = null)
     {
-        BlockSymbols symbols = blockSymbols.HasValue ? blockSymbols.Value : BlockSymbols.SquareSingle;
+        BoxSymbols symbols = boxSymbols ?? BoxSymbols.SquareSingle;
         Coordinates origin = new Coordinates(
             (WindowDimensions.Width - width) / 2,
             (WindowDimensions.Height - height) / 2
         );
-        return DrawBox(new BoxDimensions(width, height, origin), blockSymbols);
+        return DrawBox(new BoxDimensions(width, height, origin), boxSymbols);
     }
-    public static BoxDimensions DrawBox(BoxDimensions dimensions, BlockSymbols? blockSymbols = null)
+
+    public static BoxDimensions DrawBox(BoxDimensions dimensions, BoxSymbols? boxSymbols = null)
     {
-        BlockSymbols symbols = blockSymbols.HasValue ? blockSymbols.Value : BlockSymbols.SquareSingle;
+        BoxSymbols symbols = boxSymbols ?? BoxSymbols.SquareSingle;
         int width = dimensions.Width - 1;
         int height = dimensions.Height - 1;
-        int xStart = dimensions.GetXStart();
+        int xStart = dimensions.XStart;
         int xEnd = xStart + width;
-        int yStart = dimensions.GetYStart();
+        int yStart = dimensions.YStart;
         int yEnd = yStart + height;
         for (int y = yStart; y <= yEnd; y++)
         {
@@ -368,10 +357,10 @@ public class UserInterface
     public static void ClearGameArea()
     {
         BoxDimensions innerDimensions = GameAreaDimensions.GetInnerDimensions();
-        int yStart = innerDimensions.GetYStart();
-        int yEnd = innerDimensions.GetYEnd();
-        int xStart = innerDimensions.GetXStart();
-        string filler = new string(' ', innerDimensions.GetWidth());
+        int yStart = innerDimensions.YStart;
+        int yEnd = innerDimensions.YEnd;
+        int xStart = innerDimensions.XStart;
+        string filler = new string(' ', innerDimensions.Width);
         for (int y = yStart; y <= yEnd; y++)
         {
             Console.SetCursorPosition(xStart, y);
@@ -381,27 +370,14 @@ public class UserInterface
 
     public static void ResetCursor()
     {
-        Console.SetCursorPosition(WindowDimensions.GetXEnd(), WindowDimensions.GetYEnd());
+        Console.SetCursorPosition(WindowDimensions.XEnd, WindowDimensions.YEnd);
     }
 
     public static ConsoleKey PollInputKey(ConsoleKey[]? acceptKeys = null, long? timeout = null)
     {
         ConsoleKey result = ConsoleKey.None;
-        if (timeout == null)
-        {
-            if (acceptKeys == null)
-            {
-                result = Console.ReadKey(true).Key;
-            }
-            else
-            {
-                do
-                {
-                    result = Console.ReadKey(true).Key;
-                } while (!acceptKeys.Contains(result));
-            }
-        }
-        else
+
+        if(timeout.HasValue)
         {
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();
@@ -420,6 +396,14 @@ public class UserInterface
             } while (stopWatch.ElapsedMilliseconds < timeout);
             stopWatch.Stop();
         }
+        else
+        {
+            do
+            {
+                result = Console.ReadKey(true).Key;
+            } while (acceptKeys != null && !acceptKeys.Contains(result));
+        }
+
         return result;
     }
 
@@ -481,7 +465,6 @@ public class Snake
     public Coordinates Head { get; set; }
     public Direction CurrentDirection { get; set; }
     public Direction PreviousDirection { get; set; }
-
     public SnakeState State { get; set; }
 
     private void ShiftPathArrayRight()
@@ -500,11 +483,11 @@ public class Snake
             {
                 case Direction.Right:
                 case Direction.Left:
-                    bodyShape = BlockSymbols.SquareDouble.Horizontal.ToString();
+                    bodyShape = BoxSymbols.SquareDouble.Horizontal.ToString();
                     break;
                 case Direction.Up:
                 case Direction.Down:
-                    bodyShape = BlockSymbols.SquareDouble.Vertical.ToString();
+                    bodyShape = BoxSymbols.SquareDouble.Vertical.ToString();
                     break;
             }
         }
@@ -513,10 +496,10 @@ public class Snake
             switch (CurrentDirection)
             {
                 case Direction.Right:
-                    bodyShape = BlockSymbols.SquareDouble.TopLeft.ToString();
+                    bodyShape = BoxSymbols.SquareDouble.TopLeft.ToString();
                     break;
                 case Direction.Left:
-                    bodyShape = BlockSymbols.SquareDouble.TopRight.ToString();
+                    bodyShape = BoxSymbols.SquareDouble.TopRight.ToString();
                     break;
             }
         }
@@ -525,10 +508,10 @@ public class Snake
             switch (CurrentDirection)
             {
                 case Direction.Right:
-                    bodyShape = BlockSymbols.SquareDouble.BottomLeft.ToString();
+                    bodyShape = BoxSymbols.SquareDouble.BottomLeft.ToString();
                     break;
                 case Direction.Left:
-                    bodyShape = BlockSymbols.SquareDouble.BottomRight.ToString();
+                    bodyShape = BoxSymbols.SquareDouble.BottomRight.ToString();
                     break;
             }
         }
@@ -537,10 +520,10 @@ public class Snake
             switch (CurrentDirection)
             {
                 case Direction.Up:
-                    bodyShape = BlockSymbols.SquareDouble.BottomRight.ToString();
+                    bodyShape = BoxSymbols.SquareDouble.BottomRight.ToString();
                     break;
                 case Direction.Down:
-                    bodyShape = BlockSymbols.SquareDouble.TopRight.ToString();
+                    bodyShape = BoxSymbols.SquareDouble.TopRight.ToString();
                     break;
             }
         }
@@ -549,19 +532,14 @@ public class Snake
             switch (CurrentDirection)
             {
                 case Direction.Up:
-                    bodyShape = BlockSymbols.SquareDouble.BottomLeft.ToString();
+                    bodyShape = BoxSymbols.SquareDouble.BottomLeft.ToString();
                     break;
                 case Direction.Down:
-                    bodyShape = BlockSymbols.SquareDouble.TopLeft.ToString();
+                    bodyShape = BoxSymbols.SquareDouble.TopLeft.ToString();
                     break;
             }
         }
         Path[0] = new Coordinates(Head.X, Head.Y, bodyShape);
-    }
-
-    public void AutoMove()
-    {
-        Move(CurrentDirection);
     }
 
     public void Move(Direction direction)
@@ -620,7 +598,7 @@ public class Snake
 
     private char ThinOutTail(char symbol)
     {
-        return BlockSymbols.Transliterate(symbol, BlockSymbols.SquareDouble, BlockSymbols.SquareSingle);
+        return BoxSymbols.Transliterate(symbol, BoxSymbols.SquareDouble, BoxSymbols.SquareSingle);
     }
 
     private char DetermineSnakeDrawSymbol(string? normal, char dead, char? chomping = null, char fallback = 'o')
@@ -668,50 +646,55 @@ public class Fruit
     public Fruit(Coordinates position, char? fruitSymbol = null, int? color = null)
     {
         if (!fruitSymbol.HasValue)
-            fruitSymbol = builtinFruits[RndRng.Next(0, builtinFruits.Length)];
+            fruitSymbol = FruitSelection[s_random.Next(0, FruitSelection.Length)];
         if (!color.HasValue)
-            color = builtinColors[RndRng.Next(0, builtinColors.Length)];
+            color = ColorSelection[s_random.Next(0, ColorSelection.Length)];
         Symbol = fruitSymbol.Value;
         Color = color.Value;
         Position = position;
     }
-    private static readonly Random RndRng = new Random();
-    public static readonly char[] builtinFruits = ['•', '◦', '▴', '■', '□', '᛭', '⨯', 'ꚛ', '★', '☆'];
-    public static readonly int[] builtinColors = [11, 12, 13, 14, 15];
-    public readonly char Symbol;
-    public readonly int Color;
-    public readonly Coordinates Position;
-    public static Coordinates FindSpawnPosition(Snake Snake)
-    {
-        BoxDimensions innerGameArea = UserInterface.GameAreaDimensions.GetInnerDimensions();
-        while (true)
-        {
-            Coordinates trial = new Coordinates(
-                RndRng.Next(innerGameArea.GetXStart(), innerGameArea.GetXEnd()),
-                RndRng.Next(innerGameArea.GetYStart(), innerGameArea.GetYEnd())
-            );
-            if (!Snake.CollidesWithPoint(trial))
-                return trial;
-        }
-    }
+    private static Random s_random = new Random();
+    private static readonly char[] _fruitSelection = ['•', '◦', '▴', '■', '□', '᛭', '⨯', 'ꚛ', '★', '☆'];
+    public static char[] FruitSelection { get => _fruitSelection; }
+    private static readonly int[] _colorSelection = [8, 9, 10, 11, 12, 13, 14, 15];
+    public static int[] ColorSelection { get => _colorSelection; }
+    public char Symbol { get; init; }
+    public int Color { get; init; }
+    public Coordinates Position { get; init; }
 
     public void Draw()
     {
         Console.SetCursorPosition(Position.X, Position.Y);
         Console.Write(UserInterface.Ansify(Symbol.ToString(), color: Color));
     }
+
+    public static Coordinates FindSpawnPosition(Snake Snake)
+    {
+        BoxDimensions innerGameArea = UserInterface.GameAreaDimensions.GetInnerDimensions();
+        while (true)
+        {
+            Coordinates trial = new Coordinates(
+                s_random.Next(innerGameArea.XStart, innerGameArea.XEnd),
+                s_random.Next(innerGameArea.YStart, innerGameArea.YEnd)
+            );
+            if (!Snake.CollidesWithPoint(trial))
+                return trial;
+        }
+    }
+
 }
 
 public class Game
 {
     public Game(GameDifficulty difficulty = GameDifficulty.Medium)
     {
+        Score = 0;
         BoxDimensions innerGameArea = UserInterface.GameAreaDimensions.GetInnerDimensions();
         Snake = new Snake(
-            UserInterface.WindowDimensions.GetArea(),
+            UserInterface.WindowDimensions.Area,
             new Coordinates(
-                RndRng.Next(innerGameArea.GetXStart(), innerGameArea.GetXEnd()),
-                RndRng.Next(innerGameArea.GetYStart(), innerGameArea.GetYEnd())
+                s_random.Next(innerGameArea.XStart, innerGameArea.XEnd),
+                s_random.Next(innerGameArea.YStart, innerGameArea.YEnd)
             )
         );
         Difficulty = difficulty;
@@ -739,25 +722,25 @@ public class Game
         AutoMoveDelay = AutoMoveDelayMax;
     }
 
-    private static readonly Random RndRng = new Random();
+    private static readonly Random s_random = new Random();
 
     public Snake Snake { get; init; }
 
     public Fruit? Fruit { get; set; }
 
-    protected int AutoMoveDelayMax { get; set; }
+    public int AutoMoveDelayMax { get; set; }
 
-    protected int AutoMoveDelayMin { get; set; }
+    public int AutoMoveDelayMin { get; set; }
 
-    protected int AutoMoveDelay { get; set; }
+    public int AutoMoveDelay { get; set; }
 
-    protected bool PreventBoundaryCollisions { get; set; }
+    public bool PreventBoundaryCollisions { get; set; }
 
-    protected bool PreventTurnbacks { get; set; }
+    public bool PreventTurnbacks { get; set; }
 
-    protected GameDifficulty Difficulty { get; set; }
+    public GameDifficulty Difficulty { get; set; }
 
-    protected int Score = 0;
+    public int Score { get; set; }
 
     private void SpawnFruit()
     {
