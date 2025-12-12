@@ -67,9 +67,10 @@ public class Game
 
     private void SpawnFruit()
     {
-        Fruit = new Fruit(
-            Fruit.FindSpawnPosition(Snake)
-        );
+        Coordinates? fruitPosition = Fruit.FindSpawnPosition(Snake, int.MaxValue - 1);
+        if(!fruitPosition.HasValue)
+            throw new InvalidOperationException("Could not find a position to spawn a new fruit");
+        Fruit = new Fruit(fruitPosition.Value);
     }
 
     public bool Run()

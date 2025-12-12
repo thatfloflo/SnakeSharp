@@ -6,7 +6,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <ApplicationIcon>resources\appicon.ico</ApplicationIcon>
+    <ApplicationIcon>..\resources\appicon.ico</ApplicationIcon>
     <AssemblyName>snake</AssemblyName>
   </PropertyGroup>
 
