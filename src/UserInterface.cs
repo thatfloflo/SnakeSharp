@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace Snake;
 
@@ -30,8 +31,13 @@ public static class UserInterface
     /// </remarks>
     public static void Initialize()
     {
-        Console.OutputEncoding = System.Text.Encoding.Unicode;
-        Console.InputEncoding = System.Text.Encoding.Unicode;
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            // For some reason on macOS setting encoding appears to break everything,
+            // so we'll leave that alone (tested on Monterey only).
+            Console.OutputEncoding = System.Text.Encoding.Unicode;
+            Console.InputEncoding = System.Text.Encoding.Unicode;
+        }
         Console.CursorVisible = false;
         Console.Clear();
         DrawGameArea();
