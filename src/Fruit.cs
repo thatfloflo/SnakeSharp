@@ -80,7 +80,7 @@ public class Fruit
     /// suitable coordinates. If <c>maxAttempts &gt;= int.MaxValue</c> (the default), then there
     /// is <b>no limit</b> to the number of attempts.</param>
     /// <returns>
-    /// Returns a set of random coordinates that is within the
+    /// A set of random coordinates that is within the
     /// <see cref="UserInterface.GameAreaDimensions"/> and which does not collide with
     /// the <i>snake</i>, or <c>null</c> if no such coordinates could be found in fewer
     /// than <i>maxAttempts</i> attempts.

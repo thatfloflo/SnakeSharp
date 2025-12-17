@@ -1,8 +1,20 @@
 
 namespace Snake;
 
+/// <summary>Encapsulates the possible states of a <see cref="Snake"/> in the game.</summary>
+public enum SnakeState
+{
+    Normal,
+    Chomping,
+    Dead
+}
+
+/// <summary>Represents a snake in a game of snake.</summary>
 public class Snake
 {
+    /// <summary>Instantiates a new snake to use in a game.</summary>
+    /// <param name="maxLength">The maximal length the snake is allowed to grow to (usually <c>&lt;=</c> the area of the game area).</param>
+    /// <param name="spawnPosition">The initial coordinates at which the snake is spawned.</param>
     public Snake(int maxLength, Coordinates spawnPosition)
     {
         Length = 1;
@@ -13,11 +25,30 @@ public class Snake
         State = SnakeState.Normal;
     }
 
+    /// <summary>The current length of the snake, including the head. Always greater than 0.</summary>
     public int Length { get; set; }
+    /// <summary>Array containing the path along which the snake has travelled.</summary>
+    /// <remarks>
+    /// <para>
+    /// The path array is always of the <i>maxLength</i> that was specified when the instance was created
+    /// and will thus contain more coordinate entries, possibly with default values, than the length of the
+    /// snake or the moves made so far. You must use the instance's <see cref="Length"/> property to determine
+    /// the number of <b>relevant</b> path entries when examining the snake's path. You would usually want
+    /// to ignore any indices past the snake's <c>Length - 1</c>.
+    /// </para>
+    /// <para>
+    /// The individual <see cref="Coordinates"/>'s annotation property contains the symbol that was drawn to
+    /// the screen when the snake moved across that position.
+    /// </para>
+    /// </remarks>
     public Coordinates[] Path { get; set; }
+    /// <summary>The coordinates for the current head of the snake.</summary>
     public Coordinates Head { get; set; }
+    /// <summary>The direction in which the snake is currently moving.</summary>
     public Direction CurrentDirection { get; set; }
+    /// <summary>The direction in which the snake was moving before the current move.</summary>
     public Direction PreviousDirection { get; set; }
+    /// <summary>The <see cref="SnakeState"/> of the snake.</summary>
     public SnakeState State { get; set; }
 
     private void ShiftPathArrayRight()
@@ -26,6 +57,11 @@ public class Snake
             Path[i + 1] = Path[i];
     }
 
+    /// <summary>Pushes the current position onto the <see cref="Path"/> array.</summary>
+    /// <remarks>
+    /// You do not have to call <see cref="StorePosition"/> if you call <see cref="Move"/>,
+    /// as <see cref="Move"/> automatically stores the current position before moving the head.
+    /// </remarks>
     public void StorePosition()
     {
         ShiftPathArrayRight();
@@ -95,6 +131,8 @@ public class Snake
         Path[0] = new Coordinates(Head.X, Head.Y, bodyShape.ToString());
     }
 
+    /// <summary>Moves the snake one step in the specified direction.</summary>
+    /// <param name="direction">The direction to move into (must not be <see cref="Direction.None"/>).</param>
     public void Move(Direction direction)
     {
         PreviousDirection = CurrentDirection;
@@ -105,6 +143,9 @@ public class Snake
             Head = newPosition.Value;
     }
 
+    /// <summary>Simulates a move into the specified direction.</summary>
+    /// <param name="direction">The direction to move into (must not be <see cref="Direction.None"/>).</param>
+    /// <returns>The coordinates at which the snake's head would be if it were to move into the specified direction.</returns>
     public Coordinates? SimulateMove(Direction direction)
     {
         switch (direction)
@@ -122,6 +163,17 @@ public class Snake
         }
     }
 
+    /// <summary>Draws the snake to the user interface's game area.</summary>
+    /// <remarks>
+    /// The snake only redraws the characters along its own path over its own length (and possibly
+    /// the position of its former tail). It will not overdraw or delete anything else drawn on 
+    /// the screen. If you need to clear and redraw the game area afresh, call
+    /// <see cref="UserInterface.ClearGameArea"/> before calling <see cref="Draw"/>.
+    /// </remarks>
+    /// <param name="deleteOldTail">
+    /// Whether to delete the tail (the last character) of the snake's last drawing cycle
+    /// before redrawing the snake. If set to False, the snake's former tail will persist.
+    /// </param>
     public void Draw(bool deleteOldTail = true)
     {
         if (deleteOldTail)
@@ -163,6 +215,10 @@ public class Snake
         return DetermineSnakeDrawSymbol(normal.ToCharArray()[0], dead, chomping);
     }
 
+    /// <summary>Checks whether the snake collides with the specified point.</summary>
+    /// <param name="point">The point to check for collision.</param>
+    /// <param name="includeHead">Whether to include the snake's head position or ignore it.</param>
+    /// <returns>True if the snake collides with <i>point</i>, False otherwise.</returns>
     public bool CollidesWithPoint(Coordinates point, bool includeHead = true)
     {
         if (includeHead && Head.X == point.X && Head.Y == point.Y)
@@ -185,11 +241,4 @@ public class Snake
                 return normal;
         }
     }
-}
-
-public enum SnakeState
-{
-    Normal,
-    Chomping,
-    Dead
 }
